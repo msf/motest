@@ -1,4 +1,4 @@
-package motest_test
+package parse
 
 import (
 	"testing",
@@ -6,13 +6,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFindHrefs(t *testing.T) {
 
+func TestFilterByDomainEmpty(t *testing.T) {
+	urls, err := filterByDomain("monzo.com", []string{})
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(urls))
+}
+
+func TestFilterByDomainNoFilter(t *testing.T) {
+	urls, err := filterByDomain("", []string{"anything"})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(urls))
 }
 
 func TestFilterByDomain(t *testing.T) {
-	
-	urls, err := motest.FilterByDomain("monzo.com", []string{
+	urls, err := filterByDomain("monzo.com", []string{
 		"/relative-url",
 		"https://facebook.com/something",
 		"http://monzo.com/insecure",
@@ -26,6 +34,5 @@ func TestFilterByDomain(t *testing.T) {
 		"http://monzo.com/insecure",
 		"https://monzo.com/non-relative-url",
 	}
-	
 	assert.Equal(t, expected, urls)
 }

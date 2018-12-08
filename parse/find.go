@@ -1,14 +1,8 @@
-package motest
+package parse
 
 import (
 	"github.com/pkg/errors"
 )
-
-
-
-interface CrawlResultParser {
-	parse(crawlResult) []crawlRequest
-}
 
 // findURLs present in content (possibly an html page) that match a given domain
 func findURLs(content []byte, domain string) ([]string, error) {
@@ -23,12 +17,7 @@ func findURLs(content []byte, domain string) ([]string, error) {
 
 const baseHrefPrefix  = 'href="'
 
-// findHrefs 
-func findHrefs(content []byte) ([]string, error) {
-
-}
-
-// filterByDomain will exclude from URLs entries that aren't from domain.
-func filterByDomain(domain string, URLs []string) ([]string, error) {
+// FindHrefs 
+func FindHrefs(content []byte) ([]string, error) {
 
 }
