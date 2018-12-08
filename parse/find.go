@@ -15,7 +15,6 @@ func findURLs(content []byte) ([]string, error) {
 		return nil, errors.Wrap(err, "Error on findHrefs for URLs")
 	}
 	return hrefs, nil
-
 }
 
 // findHrefs uses an html parser to read all <a href=..> links on content
