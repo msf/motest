@@ -6,14 +6,13 @@ import (
 	"strings"
 )
 
-// filterByDomain will exclude from URLs entries that aren't from domain.
-func filterByDomain(domain string, URLs []string) ([]string, error) {
+func absoluteURLsForDomain(domain string, URLs []string) ([]string, error) {
 	var out []string
 	for _, u := range filterURLs(domain, convertToURLs(URLs)) {
 		if !u.IsAbs() {
-			out = append(out, fmt.Sprintf("https://%s/%s", domain, u.String()))
+			out = append(out, fmt.Sprintf("https://%s%s", domain, u.String()))
 		} else {
-			out = append(out, u.RequestURI())
+			out = append(out, u.String())
 		}
 	}
 	return out, nil

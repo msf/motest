@@ -6,20 +6,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFilterByDomainEmpty(t *testing.T) {
-	urls, err := filterByDomain("monzo.com", []string{})
+func TestAbsoluteURLsForDomainEmpty(t *testing.T) {
+	urls, err := absoluteURLsForDomain("monzo.com", []string{})
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(urls))
 }
 
-func TestFilterByDomainNoFilter(t *testing.T) {
-	urls, err := filterByDomain("", []string{"anything"})
+func TestAbsoluteURLsForDomainNoFilter(t *testing.T) {
+	urls, err := absoluteURLsForDomain("", []string{"/anything"})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(urls))
 }
 
-func TestFilterByDomain(t *testing.T) {
-	urls, err := filterByDomain("monzo.com", []string{
+func TestAbsoluteURLsForDomain(t *testing.T) {
+	urls, err := absoluteURLsForDomain("monzo.com", []string{
 		"/relative-url",
 		"https://facebook.com/something",
 		"http://monzo.com/insecure",
@@ -29,7 +29,7 @@ func TestFilterByDomain(t *testing.T) {
 	assert.Nil(t, err)
 
 	expected := []string{
-		"/relative-url",
+		"https://monzo.com/relative-url",
 		"http://monzo.com/insecure",
 		"https://monzo.com/non-relative-url",
 	}
