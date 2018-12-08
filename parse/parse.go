@@ -11,5 +11,5 @@ func URLs(domain string, responseBody []byte) ([]string, error) {
 		return nil, errors.Wrap(err, "failure on findURLs()")
 	}
 
-	return filterByDomain(domain, urls)
+	return absoluteURLsForDomain(domain, urls)
 }
