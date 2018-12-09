@@ -1,6 +1,7 @@
 package motest
 
 import (
+	"log"
 	"sync"
 
 	"github.com/msf/motest/parse"
@@ -45,6 +46,7 @@ func Crawl(cfg CrawlConfig) *CrawledDomainMap {
 	crawlCompletedCh := make(chan *CrawledURL, cfg.MaxConnections)
 
 	rootURL := "https://" + cfg.Domain
+	issued := make(map[string]struct{})
 
 	// termination condition is tricky, we don't know how many pages we'll have.
 	// We use a WaitGroup to signal for every outstanding crawl request we issue
@@ -60,6 +62,7 @@ func Crawl(cfg CrawlConfig) *CrawledDomainMap {
 
 	outstandingReqs.Add(1)
 	reqsCh <- &crawlRequest{URL: rootURL}
+	issued[rootURL] = struct{}{}
 
 	for i := 0; i < cfg.MaxConnections; i++ {
 		go fetcher(reqsCh, responsesCh, endCh)
@@ -76,18 +79,16 @@ func Crawl(cfg CrawlConfig) *CrawledDomainMap {
 				URLs:   visited,
 			}
 		case done := <-crawlCompletedCh:
+			log.Printf("completed for: %v, code: %v, childs: %v", done.URL, done.Err, len(done.Nodes))
 			for _, uri := range done.Nodes {
-				if _, ok := visited[uri]; !ok {
+				if _, ok := issued[uri]; !ok {
 					outstandingReqs.Add(1)
 					reqsCh <- &crawlRequest{URL: uri}
+					issued[uri] = struct{}{}
 				}
 			}
-			if _, ok := visited[done.URL]; !ok {
-				outstandingReqs.Done()
-				visited[done.URL] = done
-			} else {
-				// ignore when we get extraneous responses for same URL
-			}
+			outstandingReqs.Done()
+			visited[done.URL] = done
 		}
 	}
 }
@@ -96,6 +97,7 @@ func fetcher(reqsCh <-chan *crawlRequest, responsesCh chan<- *crawlResponse, end
 	for {
 		select {
 		case req := <-reqsCh:
+			log.Printf("req for: %v", req.URL)
 			responsesCh <- fetch(req)
 		case <-endCh:
 			break
@@ -116,12 +118,14 @@ func processPage(domain string, responsesCh <-chan *crawlResponse, completedCh c
 		} else {
 			crawled.Err = res.err
 		}
-		outCh <- crawled
+		// don't block
+		go func() { outCh <- crawled }()
 	}
 
 	for {
 		select {
 		case res := <-responsesCh:
+			log.Printf("resp for: %v, code: %v", res.req.URL, res.statusCode)
 			handleResponse(res, completedCh)
 		case <-endCh:
 			break
