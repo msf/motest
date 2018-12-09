@@ -3,7 +3,7 @@ package parse
 import (
 	"fmt"
 	"net/url"
-	"strings"
+	"sort"
 )
 
 func absoluteURLsForDomain(domain string, URLs []string) ([]string, error) {
@@ -15,14 +15,14 @@ func absoluteURLsForDomain(domain string, URLs []string) ([]string, error) {
 			out = append(out, u.String())
 		}
 	}
-	return out, nil
+	return uniq(out), nil
 }
 
 func filterURLs(domain string, urls []*url.URL) []*url.URL {
 	var out []*url.URL
 	for _, u := range urls {
 		if u.IsAbs() {
-			if strings.HasSuffix(u.Hostname(), domain) {
+			if u.Hostname() == domain {
 				out = append(out, u)
 			}
 		} else {
@@ -41,5 +41,18 @@ func convertToURLs(URLs []string) []*url.URL {
 		}
 		out = append(out, u)
 	}
+	return out
+}
+
+func uniq(in []string) []string {
+	good := make(map[string]struct{})
+	for _, i := range in {
+		good[i] = struct{}{}
+	}
+	var out []string
+	for i := range good {
+		out = append(out, i)
+	}
+	sort.Strings(out)
 	return out
 }
