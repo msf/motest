@@ -1,48 +1,130 @@
 package motest
 
+import (
+	"sync"
+
+	"github.com/msf/motest/parse"
+)
+
 type crawlRequest struct {
 	URL string
 }
 
-type crawlResult struct {
-	Body       []byte
+type crawlResponse struct {
+	body       []byte
+	err        error
 	statusCode int
-	req        crawlRequest
+	req        *crawlRequest
 }
 
+// CrawledURL holds URL, all child Nodes referenced in this URL and/or Err if this crawl errored
 type CrawledURL struct {
 	URL   string
-	Nodes []*CrawledURL
+	Nodes []string
+	Err   error
 }
 
+// CrawledDomainMap holds the complete Domain Graph of URLs of and their child URLs
 type CrawledDomainMap struct {
-	domain string
+	Domain string
 	Root   *CrawledURL
+	URLs   map[string]*CrawledURL
 }
 
-type resultParser interface {
-	FindURLs(crawlResult) []crawlRequest
+// CrawlConfig holds the configurable parameters for a Domain Crawl
+type CrawlConfig struct {
+	Domain         string
+	MaxConnections int
 }
 
-type fetcher interface {
-	Do(crawlRequest) crawlResult
+// Crawl a part of the world wide web according to CrawlConfig
+func Crawl(cfg CrawlConfig) *CrawledDomainMap {
+
+	reqsCh := make(chan *crawlRequest, cfg.MaxConnections)
+	responsesCh := make(chan *crawlResponse, cfg.MaxConnections)
+	crawlCompletedCh := make(chan *CrawledURL, cfg.MaxConnections)
+
+	rootURL := "https://" + cfg.Domain
+
+	// termination condition is tricky, we don't know how many pages we'll have.
+	// We use a WaitGroup to signal for every outstanding crawl request we issue
+	// we consume them when we get a completed crawl
+	outstandingReqs := sync.WaitGroup{}
+	endCh := make(chan struct{})
+	waitForEnd := func() {
+		outstandingReqs.Wait()
+		// signal to all workers to end, crawl is complete.
+		close(endCh)
+	}
+	go waitForEnd()
+
+	outstandingReqs.Add(1)
+	reqsCh <- &crawlRequest{URL: rootURL}
+
+	for i := 0; i < cfg.MaxConnections; i++ {
+		go fetcher(reqsCh, responsesCh, endCh)
+		go processPage(cfg.Domain, responsesCh, crawlCompletedCh, endCh)
+	}
+
+	visited := make(map[string]*CrawledURL)
+	for {
+		select {
+		case <-endCh:
+			return &CrawledDomainMap{
+				Domain: cfg.Domain,
+				Root:   visited[rootURL],
+				URLs:   visited,
+			}
+		case done := <-crawlCompletedCh:
+			for _, uri := range done.Nodes {
+				if _, ok := visited[uri]; !ok {
+					outstandingReqs.Add(1)
+					reqsCh <- &crawlRequest{URL: uri}
+				}
+			}
+			if _, ok := visited[done.URL]; !ok {
+				outstandingReqs.Done()
+				visited[done.URL] = done
+			} else {
+				// ignore when we get extraneous responses for same URL
+			}
+		}
+	}
 }
 
-type cache interface {
-	HasResult(crawlRequest) bool
-	SaveResult(crawlResult) bool
+func fetcher(reqsCh <-chan *crawlRequest, responsesCh chan<- *crawlResponse, endCh <-chan struct{}) {
+	for {
+		select {
+		case req := <-reqsCh:
+			responsesCh <- fetch(req)
+		case <-endCh:
+			break
+		}
+	}
 }
 
-type crawlerState struct {
-	resultParser resultParser
-	fetcher      fetcher
-	resultCache  cache
+func processPage(domain string, responsesCh <-chan *crawlResponse, completedCh chan<- *CrawledURL, endCh <-chan struct{}) {
 
-	completedCrawlResults chan crawlResult // inbound queue of pages to process
-	pendingCrawlRequest   chan crawlRequest
-}
+	handleResponse := func(res *crawlResponse, outCh chan<- *CrawledURL) {
+		crawled := &CrawledURL{
+			URL: res.req.URL,
+		}
+		if res.statusCode == 200 {
+			urls, err := parse.URLs(domain, res.body)
+			crawled.Err = err
+			crawled.Nodes = urls
+		} else {
+			crawled.Err = res.err
+		}
+		outCh <- crawled
+	}
 
-type CrawlEngine interface {
-	CrawlDomain(domain string) CrawledDomainMap
-	HaveCrawlResult(crawlRequest) bool
+	for {
+		select {
+		case res := <-responsesCh:
+			handleResponse(res, completedCh)
+		case <-endCh:
+			break
+		}
+	}
 }
