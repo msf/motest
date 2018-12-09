@@ -1,46 +1,48 @@
 package motest
 
-
-struct crawlRequest {
+type crawlRequest struct {
 	URL string
 }
 
-struct crawlResult {
-	Body []byte
+type crawlResult struct {
+	Body       []byte
 	statusCode int
-	FetchedAt time.Time
-	req crawlRequest
+	req        crawlRequest
 }
 
-struct CrawledURL {
-	URL string
-	FetchedAt time.Time
-	Nodes []CrawledURL
+type CrawledURL struct {
+	URL   string
+	Nodes []*CrawledURL
 }
 
-struct CrawledDomainMap {
+type CrawledDomainMap struct {
 	domain string
-	Root CrawledURL
+	Root   *CrawledURL
 }
 
-
-func CrawlDomain(zdomaind string) CrawledDomainMap {
-
+type resultParser interface {
+	FindURLs(crawlResult) []crawlRequest
 }
 
-/*
-
-For a given crawlRequest we do a full search of all pages of that subdomain.
-Print a Tree-View (or more accurately a DAG) of the pages found.
-*/
-
-struct resultProcessor {
- 	completedCrawlResults chan  // inbound queue of pages to process
-	pendingCrawlRequest chan
+type fetcher interface {
+	Do(crawlRequest) crawlResult
 }
 
-interface CrawlEngine {
-	CrawlDomain(domain string) 
+type cache interface {
+	HasResult(crawlRequest) bool
+	SaveResult(crawlResult) bool
+}
+
+type crawlerState struct {
+	resultParser resultParser
+	fetcher      fetcher
+	resultCache  cache
+
+	completedCrawlResults chan crawlResult // inbound queue of pages to process
+	pendingCrawlRequest   chan crawlRequest
+}
+
+type CrawlEngine interface {
+	CrawlDomain(domain string) CrawledDomainMap
 	HaveCrawlResult(crawlRequest) bool
-
 }
