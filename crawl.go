@@ -1,6 +1,7 @@
 package motest
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -45,7 +46,7 @@ func Crawl(cfg CrawlConfig) *CrawledDomainMap {
 	responsesCh := make(chan *crawlResponse, cfg.MaxConnections)
 	crawlCompletedCh := make(chan *CrawledURL, cfg.MaxConnections)
 
-	rootURL := "https://" + cfg.Domain
+	rootURL := fmt.Sprintf("https://%s/", cfg.Domain)
 	issued := make(map[string]struct{})
 
 	// termination condition is tricky, we don't know how many pages we'll have.
@@ -79,7 +80,7 @@ func Crawl(cfg CrawlConfig) *CrawledDomainMap {
 				URLs:   visited,
 			}
 		case done := <-crawlCompletedCh:
-			log.Printf("completed for: %v, code: %v, childs: %v", done.URL, done.Err, len(done.Nodes))
+			log.Printf("completed: %v, err: %v, Nodes: %v", done.URL, done.Err, len(done.Nodes))
 			for _, uri := range done.Nodes {
 				if _, ok := issued[uri]; !ok {
 					outstandingReqs.Add(1)
@@ -97,7 +98,6 @@ func fetcher(reqsCh <-chan *crawlRequest, responsesCh chan<- *crawlResponse, end
 	for {
 		select {
 		case req := <-reqsCh:
-			log.Printf("req for: %v", req.URL)
 			responsesCh <- fetch(req)
 		case <-endCh:
 			break
@@ -125,7 +125,6 @@ func processPage(domain string, responsesCh <-chan *crawlResponse, completedCh c
 	for {
 		select {
 		case res := <-responsesCh:
-			log.Printf("resp for: %v, code: %v", res.req.URL, res.statusCode)
 			handleResponse(res, completedCh)
 		case <-endCh:
 			break
