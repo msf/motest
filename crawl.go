@@ -111,7 +111,7 @@ func parser(domain string, responsesCh <-chan *crawlResponse, completedCh chan<-
 			URL: res.req.URL,
 		}
 		if res.statusCode == 200 {
-			urls, err := parse.URLs(domain, res.body)
+			urls, err := parse.URLs(domain, res.req.URL, res.body)
 			crawled.Err = err
 			crawled.Nodes = urls
 		} else {

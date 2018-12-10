@@ -12,7 +12,7 @@ func TestParseMonzoHomepage(t *testing.T) {
 	content, err := ioutil.ReadFile("fixtures/monzo.com.html")
 	assert.Nil(t, err)
 
-	urls, err := parse.URLs("monzo.com", content)
+	urls, err := parse.URLs("monzo.com", "https://monzo.com/", content)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{
 		"https://monzo.com/",
@@ -38,6 +38,7 @@ func TestParseMonzoHomepage(t *testing.T) {
 		"https://monzo.com/press",
 		"https://monzo.com/tone-of-voice",
 		"https://monzo.com/transparency",
+		"https://web.monzo.com",
 	},
 		urls,
 	)

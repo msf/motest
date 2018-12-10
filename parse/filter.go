@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strings"
 )
 
-func absoluteURLsForDomain(domain string, URLs []string) ([]string, error) {
+func absoluteURLsForDomain(domain, baseURL string, URLs []string) ([]string, error) {
 	var out []string
 	for _, u := range filterURLs(domain, convertToURLs(URLs)) {
 		if !u.IsAbs() {
-			out = append(out, fmt.Sprintf("https://%s%s", domain, u.String()))
+
+			out = append(out, fmt.Sprintf("%s%s", baseURL, strings.TrimPrefix(u.String(), "/")))
 		} else {
 			out = append(out, u.String())
 		}
@@ -22,7 +24,7 @@ func filterURLs(domain string, urls []*url.URL) []*url.URL {
 	var out []*url.URL
 	for _, u := range urls {
 		if u.IsAbs() {
-			if u.Hostname() == domain {
+			if strings.HasSuffix(u.Hostname(), domain) {
 				out = append(out, u)
 			}
 		} else {
