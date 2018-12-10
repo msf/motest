@@ -29,7 +29,7 @@ func fakeFetcher(req *crawlRequest) *crawlResponse {
 
 func TestCrawlBasic(t *testing.T) {
 	outCh := make(chan *CrawledURL)
-	go func() {
+	validate := func() {
 		var out []*CrawledURL
 		for r := range outCh {
 			out = append(out, r)
@@ -52,8 +52,9 @@ func TestCrawlBasic(t *testing.T) {
 			},
 			out,
 		)
-	}()
+	}
 
+	go validate()
 	CrawlWithFetcher(
 		CrawlConfig{
 			MaxConnections: 1,
