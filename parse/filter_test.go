@@ -36,6 +36,33 @@ func TestAbsoluteURLsForDomain(t *testing.T) {
 	assert.Equal(t, expected, urls)
 }
 
+func TestAbsoluteURLsForDomainWithFragments(t *testing.T) {
+	urls, err := absoluteURLsForDomain("monzo.com", "https://monzo.com/careers", []string{
+		"/relative-url",
+		"/relative-url#fragment",
+	})
+	assert.Nil(t, err)
+
+	expected := []string{
+		"https://monzo.com/relative-url",
+	}
+	assert.Equal(t, expected, urls)
+}
+
+func TestAbsoluteURLsForDomainWithRelativePaths(t *testing.T) {
+	urls, err := absoluteURLsForDomain("monzo.com", "https://monzo.com/careers", []string{
+		"../blog/a-blog-post",
+		"#jobs",
+	})
+	assert.Nil(t, err)
+
+	expected := []string{
+		"https://monzo.com/careers",
+		"https://monzo.com/careers/../blog/a-blog-post",
+	}
+	assert.Equal(t, expected, urls)
+}
+
 func TestAbsoluteURLsForDomainMonzo(t *testing.T) {
 	hrefs := []string{"/", "/about", "/blog", "/community", "/faq", "/download", "https://itunes.apple.com/gb/app/mondo/id1052238659", "/-play-store-redirect", "https://www.theguardian.com/technology/2017/dec/17/monzo-facebook-of-banking", "https://www.telegraph.co.uk/personal-banking/current-accounts/monzo-atom-revolut-starling-everything-need-know-digital-banks/", "https://www.thetimes.co.uk/article/tom-blomfield-the-man-who-made-monzo-g8z59dr8n", "https://www.standard.co.uk/tech/monzo-prepaid-card-current-accounts-challenger-bank-a3805761.html", "/features/apple-pay", "/features/travel", "https://www.fscs.org.uk/", "/features/switch", "/features/overdrafts", "https://itunes.apple.com/gb/app/mondo/id1052238659", "/-play-store-redirect", "/cdn-cgi/l/email-protection#2b434e475b6b464445514405484446", "https://monzo.com/community", "https://itunes.apple.com/gb/app/mondo/id1052238659", "/-play-store-redirect", "/about", "/blog", "/press", "/careers", "https://web.monzo.com", "/community", "/community/making-monzo", "/transparency", "/blog/how-money-works", "/tone-of-voice", "/faq", "/legal/terms-and-conditions", "/legal/fscs-information", "/legal/privacy-policy", "/legal/cookie-policy", "https://itunes.apple.com/gb/app/mondo/id1052238659", "/-play-store-redirect", "https://twitter.com/monzo", "https://www.facebook.com/monzobank", "https://www.linkedin.com/company/monzo-bank", "https://www.youtube.com/monzobank", "/cdn-cgi/l/email-protection#bbd3ded7cbfbd6d4d5c1d495d8d4d6"}
 	urls, err := absoluteURLsForDomain("monzo.com", "https://monzo.com/", hrefs)
@@ -48,8 +75,7 @@ func TestAbsoluteURLsForDomainMonzo(t *testing.T) {
 		"https://monzo.com/blog",
 		"https://monzo.com/blog/how-money-works",
 		"https://monzo.com/careers",
-		"https://monzo.com/cdn-cgi/l/email-protection#2b434e475b6b464445514405484446",
-		"https://monzo.com/cdn-cgi/l/email-protection#bbd3ded7cbfbd6d4d5c1d495d8d4d6",
+		"https://monzo.com/cdn-cgi/l/email-protection",
 		"https://monzo.com/community",
 		"https://monzo.com/community/making-monzo",
 		"https://monzo.com/download",
@@ -65,6 +91,7 @@ func TestAbsoluteURLsForDomainMonzo(t *testing.T) {
 		"https://monzo.com/press",
 		"https://monzo.com/tone-of-voice",
 		"https://monzo.com/transparency",
+		"https://web.monzo.com",
 	},
 		urls,
 	)

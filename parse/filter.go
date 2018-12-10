@@ -5,17 +5,33 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
+// TODO: this function is doing too many things. split out better how handle correctly the variety of URL types
 func absoluteURLsForDomain(domain, baseURL string, URLs []string) ([]string, error) {
 	var out []string
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, errors.Wrapf(err, "bad baseURL: %v", baseURL)
+	}
 	for _, u := range filterURLs(domain, convertToURLs(URLs)) {
-		if !u.IsAbs() {
-
-			out = append(out, fmt.Sprintf("%s%s", baseURL, strings.TrimPrefix(u.String(), "/")))
+		u.Fragment = "" // ignore the fragment.
+		var uStr string
+		if u.IsAbs() {
+			uStr = u.String()
 		} else {
-			out = append(out, u.String())
+			if strings.HasPrefix(u.Path, "/") {
+				uStr = fmt.Sprintf("%s://%s%s", base.Scheme, base.Host, u.String())
+			} else if strings.HasPrefix(u.Path, "../") && !strings.HasSuffix(baseURL, "/") {
+				// handle path walking like: "site.com/careers../blog/a-blog-post"
+				uStr = fmt.Sprintf("%s/%s", baseURL, u.String())
+			} else {
+				uStr = fmt.Sprintf("%s%s", baseURL, u.String())
+			}
 		}
+		out = append(out, uStr)
 	}
 	return uniq(out), nil
 }
