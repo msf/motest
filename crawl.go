@@ -41,7 +41,11 @@ type CrawlConfig struct {
 
 // Crawl a part of the world wide web according to CrawlConfig
 func Crawl(cfg CrawlConfig, outCh chan<- *CrawledURL) {
+	CrawlWithFetcher(cfg, outCh, fetch)
+}
 
+// CrawlWithFetcher is a Crawler that uses the provided fetchFn to request URLs
+func CrawlWithFetcher(cfg CrawlConfig, outCh chan<- *CrawledURL, fetchFn func(r *crawlRequest) *crawlResponse) {
 	reqsCh := make(chan *crawlRequest, cfg.MaxConnections)
 	responsesCh := make(chan *crawlResponse, cfg.MaxConnections)
 	crawlCompletedCh := make(chan *CrawledURL, cfg.MaxConnections)
@@ -66,7 +70,7 @@ func Crawl(cfg CrawlConfig, outCh chan<- *CrawledURL) {
 	issued[rootURL] = struct{}{}
 
 	for i := 0; i < cfg.MaxConnections; i++ {
-		go fetcher(reqsCh, responsesCh, endCh)
+		go fetcher(fetchFn, reqsCh, responsesCh, endCh)
 		go parser(cfg.Domain, responsesCh, crawlCompletedCh, endCh)
 	}
 
@@ -89,11 +93,11 @@ func Crawl(cfg CrawlConfig, outCh chan<- *CrawledURL) {
 	}
 }
 
-func fetcher(reqsCh <-chan *crawlRequest, responsesCh chan<- *crawlResponse, endCh <-chan struct{}) {
+func fetcher(fetchFn func(r *crawlRequest) *crawlResponse, reqsCh <-chan *crawlRequest, responsesCh chan<- *crawlResponse, endCh <-chan struct{}) {
 	for {
 		select {
 		case req := <-reqsCh:
-			responsesCh <- fetch(req)
+			responsesCh <- fetchFn(req)
 		case <-endCh:
 			break
 		}
