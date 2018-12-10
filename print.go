@@ -7,6 +7,20 @@ type printElem struct {
 	indent int
 }
 
+// PrintStream prints crawled URLs as they complete
+func PrintStream(finishedCh <-chan *CrawledURL) {
+	for page := range finishedCh {
+		page.print()
+	}
+}
+
+func (curl *CrawledURL) print() {
+	fmt.Printf("\n%s\n", curl.URL)
+	for _, u := range curl.Nodes {
+		fmt.Printf("    -> %s\n", u)
+	}
+}
+
 // Print to stdout a Domain Map of URLs in breath-first-order
 func Print(crawled *CrawledDomainMap) {
 	q := []printElem{printElem{page: crawled.Root, indent: 0}}

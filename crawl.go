@@ -40,7 +40,7 @@ type CrawlConfig struct {
 }
 
 // Crawl a part of the world wide web according to CrawlConfig
-func Crawl(cfg CrawlConfig) *CrawledDomainMap {
+func Crawl(cfg CrawlConfig, outCh chan<- *CrawledURL) {
 
 	reqsCh := make(chan *crawlRequest, cfg.MaxConnections)
 	responsesCh := make(chan *crawlResponse, cfg.MaxConnections)
@@ -67,18 +67,13 @@ func Crawl(cfg CrawlConfig) *CrawledDomainMap {
 
 	for i := 0; i < cfg.MaxConnections; i++ {
 		go fetcher(reqsCh, responsesCh, endCh)
-		go processPage(cfg.Domain, responsesCh, crawlCompletedCh, endCh)
+		go parser(cfg.Domain, responsesCh, crawlCompletedCh, endCh)
 	}
 
-	visited := make(map[string]*CrawledURL)
 	for {
 		select {
 		case <-endCh:
-			return &CrawledDomainMap{
-				Domain: cfg.Domain,
-				Root:   visited[rootURL],
-				URLs:   visited,
-			}
+			return
 		case done := <-crawlCompletedCh:
 			log.Printf("completed: %v, err: %v, Nodes: %v", done.URL, done.Err, len(done.Nodes))
 			for _, uri := range done.Nodes {
@@ -89,7 +84,7 @@ func Crawl(cfg CrawlConfig) *CrawledDomainMap {
 				}
 			}
 			outstandingReqs.Done()
-			visited[done.URL] = done
+			outCh <- done
 		}
 	}
 }
@@ -105,7 +100,7 @@ func fetcher(reqsCh <-chan *crawlRequest, responsesCh chan<- *crawlResponse, end
 	}
 }
 
-func processPage(domain string, responsesCh <-chan *crawlResponse, completedCh chan<- *CrawledURL, endCh <-chan struct{}) {
+func parser(domain string, responsesCh <-chan *crawlResponse, completedCh chan<- *CrawledURL, endCh <-chan struct{}) {
 
 	handleResponse := func(res *crawlResponse, outCh chan<- *CrawledURL) {
 		crawled := &CrawledURL{

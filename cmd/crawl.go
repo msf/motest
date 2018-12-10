@@ -17,6 +17,7 @@ func main() {
 		Domain:         *domainPtr,
 	}
 	log.Printf("motest, config: %+v", cfg)
-	r := motest.Crawl(cfg)
-	motest.Print(r)
+	out := make(chan *motest.CrawledURL)
+	go motest.Crawl(cfg, out)
+	motest.PrintStream(out)
 }
