@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: handle network errors or server transient errors.
 func fetch(req *crawlRequest) *crawlResponse {
 	resp, err := http.Get(req.URL)
 	if err != nil {

@@ -8,6 +8,20 @@ import (
 	"github.com/msf/motest/parse"
 )
 
+// CrawledURL holds URL, all child Nodes referenced in this URL and/or Err if this crawl errored
+type CrawledURL struct {
+	URL   string
+	Nodes []string
+	Err   error
+}
+
+// CrawlConfig holds the configurable parameters for a Domain Crawl
+type CrawlConfig struct {
+	Domain         string
+	MaxConnections int
+}
+
+// crawlRequest is inner type for issuing crawl reqs
 type crawlRequest struct {
 	URL string
 }
@@ -19,27 +33,9 @@ type crawlResponse struct {
 	req        *crawlRequest
 }
 
-// CrawledURL holds URL, all child Nodes referenced in this URL and/or Err if this crawl errored
-type CrawledURL struct {
-	URL   string
-	Nodes []string
-	Err   error
-}
-
-// CrawledDomainMap holds the complete Domain Graph of URLs of and their child URLs
-type CrawledDomainMap struct {
-	Domain string
-	Root   *CrawledURL
-	URLs   map[string]*CrawledURL
-}
-
-// CrawlConfig holds the configurable parameters for a Domain Crawl
-type CrawlConfig struct {
-	Domain         string
-	MaxConnections int
-}
-
 // Crawl a part of the world wide web according to CrawlConfig
+// 	Note that crawl will write to outCh as pages are crawled their maps are found, the user
+//  is responsible for consuming from outCh so that Crawl can make progress.
 func Crawl(cfg CrawlConfig, outCh chan<- *CrawledURL) {
 	CrawlWithFetcher(cfg, outCh, fetch)
 }
