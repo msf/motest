@@ -63,12 +63,12 @@ func CrawlWithFetcher(cfg CrawlConfig, outCh chan<- *CrawledURL, fetchFn func(r 
 		// signal to all workers to end, crawl is complete.
 		close(endCh)
 	}
-	go waitForEnd()
 
 	outstandingReqs.Add(1)
 	reqsCh <- &crawlRequest{URL: rootURL}
 	issued[rootURL] = struct{}{}
 
+	go waitForEnd()
 	for i := 0; i < cfg.MaxConnections; i++ {
 		go fetcher(fetchFn, reqsCh, responsesCh, endCh)
 		go parser(cfg.Domain, responsesCh, crawlCompletedCh, endCh)
