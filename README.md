@@ -39,6 +39,13 @@ The crawler and page parser have tests. The 'fetcher' component doesn't have tes
 To make this code production worthy a better 'fetcher' that handles errors is needed, at that time a good test suite for the component would be done.
 
 
+## Building and Running
+
+> go get github.com/msf/motest
+> cd $GOPATH/src/github.com/msf/motest
+> ./build.sh
+> ./crawl -h (by default, without arguments it will crawl monzo.com w/ )
+
 ## Time and Space Complexity
 
 Time complexity is O(N) where N is number of pages. The bottleneck is going to be page fetching IO rates and not cpu time.
