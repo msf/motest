@@ -63,4 +63,5 @@ func TestCrawlBasic(t *testing.T) {
 		outCh,
 		fakeFetcher,
 	)
+	close(outCh)
 }
