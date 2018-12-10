@@ -41,16 +41,18 @@ To make this code production worthy a better 'fetcher' that handles errors is ne
 
 ## Building and Running
 
-> go get github.com/msf/motest
-> cd $GOPATH/src/github.com/msf/motest
-> ./build.sh
-> ./crawl -h (by default, without arguments it will crawl monzo.com w/ )
+```
+$ go get github.com/msf/motest
+$ cd $GOPATH/src/github.com/msf/motest
+$ ./build.sh
+$ ./crawl -h (by default, without arguments it will crawl monzo.com w/ )
+```
 
 ## Time and Space Complexity
 
-Time complexity is O(N) where N is number of pages. The bottleneck is going to be page fetching IO rates and not cpu time.
+Time complexity is O(N) where N is number of unique URLs. The bottleneck is going to be page fetching IO rates and not cpu time.
 
-Space complexity: O(1) because it is bound to the number of pending and outstanding page requests. 
+Space complexity: O(N) because it keeps state of what URLs for which a crawl request has been issued.
 
 ## Distributed Implementation
 
